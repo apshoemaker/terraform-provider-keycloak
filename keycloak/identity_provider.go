@@ -45,6 +45,9 @@ type IdentityProviderConfig struct {
 	UserIp                           KeycloakBoolQuoted     `json:"userIp,omitempty"`
 	OfflineAccess                    KeycloakBoolQuoted     `json:"offlineAccess,omitempty"`
 	ExtraConfig                      map[string]interface{} `json:"-"`
+	AuthnContextClassRefs            string                 `json:"authnContextClassRefs,omitempty"`
+	AuthnContextComparisonType       string                 `json:"authnContextComparisonType,omitempty"`
+	AuthnContextDeclRefs             string                 `json:"authnContextDeclRefs,omitempty"`
 }
 
 type IdentityProvider struct {
