@@ -32,3 +32,4 @@ site/
 *.zip
 
 .DS_Store
+.envrc

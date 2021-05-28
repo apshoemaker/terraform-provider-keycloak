@@ -377,6 +377,40 @@ func TestAccKeycloakOpenidClient_publicClientCredentialsValidation(t *testing.T)
 	})
 }
 
+func TestAccKeycloakOpenidClient_clientAuthenticatorType(t *testing.T) {
+	t.Parallel()
+	clientId := acctest.RandomWithPrefix("tf-acc")
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		PreCheck:          func() { testAccPreCheck(t) },
+		CheckDestroy:      testAccCheckKeycloakOpenidClientDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testKeycloakOpenidClient_clientAuthenticatorType(clientId, "client-jwt"),
+				Check:  testAccCheckKeycloakOpenidClientHasClientAuthenticatorType("keycloak_openid_client.client", "client-jwt"),
+			},
+		},
+	})
+}
+
+func TestAccKeycloakOpenidClient_jwks(t *testing.T) {
+	t.Parallel()
+	clientId := acctest.RandomWithPrefix("tf-acc")
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		PreCheck:          func() { testAccPreCheck(t) },
+		CheckDestroy:      testAccCheckKeycloakOpenidClientDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testKeycloakOpenidClient_jwks(clientId, true, "https://foo.com"),
+				Check:  testAccCheckKeycloakOpenidClientHasJwks("keycloak_openid_client.client", true, "https://foo.com"),
+			},
+		},
+	})
+}
+
 func TestAccKeycloakOpenidClient_bearerClientNoGrantsValidation(t *testing.T) {
 	t.Parallel()
 	clientId := acctest.RandomWithPrefix("tf-acc")
@@ -697,6 +731,42 @@ func testAccCheckKeycloakOpenidClientHasClientSecret(resourceName, secret string
 	}
 }
 
+func testAccCheckKeycloakOpenidClientHasClientAuthenticatorType(resourceName, clientAuthenticatorType string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client, err := getOpenidClientFromState(s, resourceName)
+
+		if err != nil {
+			return err
+		}
+
+		if client.ClientAuthenticatorType != clientAuthenticatorType {
+			return fmt.Errorf("expected client authenticator type %s, but got %s", clientAuthenticatorType, client.ClientAuthenticatorType)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckKeycloakOpenidClientHasJwks(resourceName string, useJwksUrl keycloak.KeycloakBoolQuoted, jwksUrl string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client, err := getOpenidClientFromState(s, resourceName)
+
+		if err != nil {
+			return err
+		}
+
+		if client.Attributes.UseJwksUrl != useJwksUrl {
+			return fmt.Errorf("expected use.jwks.url %t, but got %t", useJwksUrl, client.Attributes.UseJwksUrl)
+		}
+
+		if client.Attributes.JwksUrl != jwksUrl {
+			return fmt.Errorf("expected jwks.url %s, but got %s", jwksUrl, client.Attributes.JwksUrl)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckKeycloakOpenidClientHasNonEmptyClientSecret(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client, err := getOpenidClientFromState(s, resourceName)
@@ -970,6 +1040,37 @@ resource "keycloak_openid_client" "client" {
 	pkce_code_challenge_method = "%s"
 }
 	`, testAccRealm.Realm, clientId, pkceChallengeMethod)
+}
+
+func testKeycloakOpenidClient_clientAuthenticatorType(clientId, clientAuthenticatorType string) string {
+	return fmt.Sprintf(`
+data "keycloak_realm" "realm" {
+	realm = "%s"
+}
+
+resource "keycloak_openid_client" "client" {
+	client_id   = "%s"
+	realm_id    = data.keycloak_realm.realm.id
+	access_type = "CONFIDENTIAL"
+	client_authenticator_type = "%s"
+}
+	`, testAccRealm.Realm, clientId, clientAuthenticatorType)
+}
+
+func testKeycloakOpenidClient_jwks(clientId string, useJwksUrl bool, jwksUrl string) string {
+	return fmt.Sprintf(`
+data "keycloak_realm" "realm" {
+	realm = "%s"
+}
+
+resource "keycloak_openid_client" "client" {
+	client_id   = "%s"
+	realm_id    = data.keycloak_realm.realm.id
+	access_type = "CONFIDENTIAL"
+	use_jwks_url = %t
+	jwks_url = "%s"
+}
+	`, testAccRealm.Realm, clientId, useJwksUrl, jwksUrl)
 }
 
 func testKeycloakOpenidClient_excludeSessionStateFromAuthResponse(clientId string, excludeSessionStateFromAuthResponse bool) string {

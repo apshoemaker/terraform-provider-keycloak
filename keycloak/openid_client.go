@@ -63,6 +63,8 @@ type OpenidClientAttributes struct {
 	ClientOfflineSessionMaxLifespan     string             `json:"client.offline.session.max.lifespan,omitempty"`
 	ClientSessionIdleTimeout            string             `json:"client.session.idle.timeout,omitempty"`
 	ClientSessionMaxLifespan            string             `json:"client.session.max.lifespan,omitempty"`
+	UseJwksUrl                          KeycloakBoolQuoted `json:"use.jwks.url,omitempty"`
+	JwksUrl                             string             `json:"jwks.url,omitempty"`
 }
 
 type OpenidAuthenticationFlowBindingOverrides struct {
@@ -110,7 +112,9 @@ func (keycloakClient *KeycloakClient) ValidateOpenidClient(client *OpenidClient)
 
 func (keycloakClient *KeycloakClient) NewOpenidClient(client *OpenidClient) error {
 	client.Protocol = "openid-connect"
-	client.ClientAuthenticatorType = "client-secret"
+	if client.ClientAuthenticatorType == "" {
+		client.ClientAuthenticatorType = "client-secret"
+	}
 
 	_, location, err := keycloakClient.post(fmt.Sprintf("/realms/%s/clients", client.RealmId), client)
 	if err != nil {
@@ -213,7 +217,9 @@ func (keycloakClient *KeycloakClient) GetOpenidClientByClientId(realmId, clientI
 
 func (keycloakClient *KeycloakClient) UpdateOpenidClient(client *OpenidClient) error {
 	client.Protocol = "openid-connect"
-	client.ClientAuthenticatorType = "client-secret"
+	if client.ClientAuthenticatorType == "" {
+		client.ClientAuthenticatorType = "client-secret"
+	}
 
 	return keycloakClient.put(fmt.Sprintf("/realms/%s/clients/%s", client.RealmId, client.Id), client)
 }

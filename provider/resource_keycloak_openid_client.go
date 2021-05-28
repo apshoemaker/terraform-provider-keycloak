@@ -17,6 +17,7 @@ var (
 	keycloakOpenidClientAuthorizationPolicyEnforcementMode   = []string{"ENFORCING", "PERMISSIVE", "DISABLED"}
 	keycloakOpenidClientResourcePermissionDecisionStrategies = []string{"UNANIMOUS", "AFFIRMATIVE", "CONSENSUS"}
 	keycloakOpenidClientPkceCodeChallengeMethod              = []string{"", "plain", "S256"}
+	keycloakOpenIdClientAuthenticationTypes                  = []string{"client-jwt", "client-secret", "client-x509", "client-secret-jwt"}
 )
 
 func resourceKeycloakOpenidClient() *schema.Resource {
@@ -206,6 +207,20 @@ func resourceKeycloakOpenidClient() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"client_authenticator_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(keycloakOpenIdClientAuthenticationTypes, false),
+			},
+			"use_jwks_url": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"jwks_url": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 		CustomizeDiff: customdiff.ComputedIf("service_account_user_id", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
 			return d.HasChange("service_accounts_enabled")
@@ -261,6 +276,7 @@ func getOpenidClientFromData(data *schema.ResourceData) (*keycloak.OpenidClient,
 		DirectAccessGrantsEnabled: data.Get("direct_access_grants_enabled").(bool),
 		ServiceAccountsEnabled:    data.Get("service_accounts_enabled").(bool),
 		FullScopeAllowed:          data.Get("full_scope_allowed").(bool),
+		ClientAuthenticatorType:   data.Get("client_authenticator_type").(string),
 		Attributes: keycloak.OpenidClientAttributes{
 			PkceCodeChallengeMethod:             data.Get("pkce_code_challenge_method").(string),
 			ExcludeSessionStateFromAuthResponse: keycloak.KeycloakBoolQuoted(data.Get("exclude_session_state_from_auth_response").(bool)),
@@ -270,6 +286,8 @@ func getOpenidClientFromData(data *schema.ResourceData) (*keycloak.OpenidClient,
 			ClientOfflineSessionMaxLifespan:     data.Get("client_offline_session_max_lifespan").(string),
 			ClientSessionIdleTimeout:            data.Get("client_session_idle_timeout").(string),
 			ClientSessionMaxLifespan:            data.Get("client_session_max_lifespan").(string),
+			UseJwksUrl:                          keycloak.KeycloakBoolQuoted(data.Get("use_jwks_url").(bool)),
+			JwksUrl:                             data.Get("jwks_url").(string),
 		},
 		ValidRedirectUris: validRedirectUris,
 		WebOrigins:        webOrigins,
